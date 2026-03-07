@@ -47,6 +47,18 @@ model Clinic {
   appointments     Appointment[]
   visits           Visit[]
   drugStocks       DrugStock[]
+
+  // Supply Management
+  supplyCategories      SupplyCategory[]
+  suppliers             Supplier[]
+  departments           Department[]
+  supplyItems           SupplyItem[]
+  supplyStocks          SupplyStock[]
+  supplyReceives        SupplyReceive[]
+  supplyRequisitions    SupplyRequisition[]
+  supplyInventoryCounts SupplyInventoryCount[]
+  supplyWriteOffs       SupplyWriteOff[]
+  supplyActivityLogs    SupplyActivityLog[]
 }
 
 model User {
@@ -86,6 +98,19 @@ model User {
   visitsAsDoctor       Visit[]
   assignedRooms        ExaminationRoom[]
   notificationsCreated Notification[]
+
+  // Supply Management
+  departmentHead       Department[]            @relation("DepartmentHead")
+  supplyMovements      SupplyMovement[]        @relation("SupplyMovements")
+  supplyReceivesBy     SupplyReceive[]         @relation("SupplyReceives")
+  supplyRequested      SupplyRequisition[]     @relation("SupplyRequested")
+  supplyApproved       SupplyRequisition[]     @relation("SupplyApproved")
+  supplyDisbursed      SupplyRequisition[]     @relation("SupplyDisbursed")
+  supplyCountedBy      SupplyInventoryCount[]  @relation("SupplyCountedBy")
+  supplyCountApproved  SupplyInventoryCount[]  @relation("SupplyCountApproved")
+  writeOffRequested    SupplyWriteOff[]        @relation("WriteOffRequested")
+  writeOffApproved     SupplyWriteOff[]        @relation("WriteOffApproved")
+  supplyActivityLogs   SupplyActivityLog[]     @relation("SupplyActivityLogs")
 
   @@index([clinicId])
 }
@@ -698,4 +723,306 @@ model DocumentHeader {
   clinic Clinic @relation(fields: [clinicId], references: [id])
 
   @@index([clinicId])
+}
+
+// ===================== SUPPLY MANAGEMENT =====================
+
+model SupplyCategory {
+  id          String   @id @default(cuid())
+  clinicId    String
+  code        String   @default("")
+  nameTh      String
+  nameEn      String   @default("")
+  description String   @default("")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  clinic Clinic       @relation(fields: [clinicId], references: [id])
+  items  SupplyItem[]
+
+  @@index([clinicId])
+}
+
+model Supplier {
+  id            String   @id @default(cuid())
+  clinicId      String
+  code          String   @default("")
+  nameTh        String
+  nameEn        String   @default("")
+  contactPerson String   @default("")
+  phone         String   @default("")
+  email         String   @default("")
+  address       String   @default("")
+  taxId         String   @default("")
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  clinic         Clinic          @relation(fields: [clinicId], references: [id])
+  supplyReceives SupplyReceive[]
+
+  @@index([clinicId])
+}
+
+model Department {
+  id         String   @id @default(cuid())
+  clinicId   String
+  code       String   @default("")
+  nameTh     String
+  nameEn     String   @default("")
+  headUserId String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  clinic       Clinic              @relation(fields: [clinicId], references: [id])
+  headUser     User?               @relation("DepartmentHead", fields: [headUserId], references: [id])
+  requisitions SupplyRequisition[]
+
+  @@index([clinicId])
+}
+
+model SupplyItem {
+  id          String   @id @default(cuid())
+  clinicId    String
+  categoryId  String
+  code        String   @default("")
+  nameTh      String
+  nameEn      String   @default("")
+  unit        String   @default("")
+  minStock    Int      @default(0)
+  maxStock    Int      @default(0)
+  price       Float    @default(0)
+  description String   @default("")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  clinic           Clinic                  @relation(fields: [clinicId], references: [id])
+  category         SupplyCategory          @relation(fields: [categoryId], references: [id])
+  stocks           SupplyStock[]
+  movements        SupplyMovement[]
+  requisitionItems SupplyRequisitionItem[]
+
+  @@index([clinicId])
+  @@index([categoryId])
+}
+
+model SupplyStock {
+  id           String    @id @default(cuid())
+  clinicId     String
+  supplyItemId String
+  lotNumber    String    @default("")
+  quantity     Int       @default(0)
+  unitCost     Float     @default(0)
+  receivedDate DateTime  @default(now())
+  expiryDate   DateTime?
+  location     String    @default("")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  clinic     Clinic           @relation(fields: [clinicId], references: [id])
+  supplyItem SupplyItem       @relation(fields: [supplyItemId], references: [id])
+  movements  SupplyMovement[]
+
+  @@index([clinicId])
+  @@index([supplyItemId])
+}
+
+model SupplyMovement {
+  id            String   @id @default(cuid())
+  supplyStockId String
+  supplyItemId  String
+  movementType  String   @default("Receive")
+  quantity      Int
+  referenceId   String   @default("")
+  referenceType String   @default("")
+  notes         String   @default("")
+  performedById String
+  createdAt     DateTime @default(now())
+
+  supplyStock SupplyStock @relation(fields: [supplyStockId], references: [id])
+  supplyItem  SupplyItem  @relation(fields: [supplyItemId], references: [id])
+  performedBy User        @relation("SupplyMovements", fields: [performedById], references: [id])
+
+  @@index([supplyStockId])
+  @@index([supplyItemId])
+}
+
+model SupplyReceive {
+  id            String   @id @default(cuid())
+  clinicId      String
+  receiveNumber String   @default("")
+  supplierId    String?
+  receiveDate   DateTime @default(now())
+  invoiceNumber String   @default("")
+  totalAmount   Float    @default(0)
+  notes         String   @default("")
+  receivedById  String
+  status        String   @default("Completed")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  clinic     Clinic              @relation(fields: [clinicId], references: [id])
+  supplier   Supplier?           @relation(fields: [supplierId], references: [id])
+  receivedBy User                @relation("SupplyReceives", fields: [receivedById], references: [id])
+  items      SupplyReceiveItem[]
+
+  @@index([clinicId])
+}
+
+model SupplyReceiveItem {
+  id           String    @id @default(cuid())
+  receiveId    String
+  supplyItemId String
+  quantity     Int       @default(0)
+  unitCost     Float     @default(0)
+  totalCost    Float     @default(0)
+  lotNumber    String    @default("")
+  expiryDate   DateTime?
+  createdAt    DateTime  @default(now())
+
+  receive SupplyReceive @relation(fields: [receiveId], references: [id])
+
+  @@index([receiveId])
+}
+
+model SupplyRequisition {
+  id                String    @id @default(cuid())
+  clinicId          String
+  requisitionNumber String    @default("")
+  departmentId      String
+  requestedById     String
+  requestedDate     DateTime  @default(now())
+  purpose           String    @default("")
+  status            String    @default("Pending")
+  approvedById      String?
+  approvedAt        DateTime?
+  approverNotes     String    @default("")
+  disbursedById     String?
+  disbursedAt       DateTime?
+  notes             String    @default("")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  clinic      Clinic                  @relation(fields: [clinicId], references: [id])
+  department  Department              @relation(fields: [departmentId], references: [id])
+  requestedBy User                    @relation("SupplyRequested", fields: [requestedById], references: [id])
+  approvedBy  User?                   @relation("SupplyApproved", fields: [approvedById], references: [id])
+  disbursedBy User?                   @relation("SupplyDisbursed", fields: [disbursedById], references: [id])
+  items       SupplyRequisitionItem[]
+
+  @@index([clinicId])
+  @@index([departmentId])
+  @@index([status])
+}
+
+model SupplyRequisitionItem {
+  id            String   @id @default(cuid())
+  requisitionId String
+  supplyItemId  String
+  requestedQty  Int      @default(0)
+  approvedQty   Int?
+  disbursedQty  Int?
+  notes         String   @default("")
+  createdAt     DateTime @default(now())
+
+  requisition SupplyRequisition @relation(fields: [requisitionId], references: [id])
+  supplyItem  SupplyItem        @relation(fields: [supplyItemId], references: [id])
+
+  @@index([requisitionId])
+}
+
+model SupplyInventoryCount {
+  id           String    @id @default(cuid())
+  clinicId     String
+  countNumber  String    @default("")
+  countDate    DateTime  @default(now())
+  fiscalYear   Int       @default(0)
+  status       String    @default("InProgress")
+  countedById  String
+  approvedById String?
+  approvedAt   DateTime?
+  notes        String    @default("")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  clinic     Clinic                      @relation(fields: [clinicId], references: [id])
+  countedBy  User                        @relation("SupplyCountedBy", fields: [countedById], references: [id])
+  approvedBy User?                       @relation("SupplyCountApproved", fields: [approvedById], references: [id])
+  items      SupplyInventoryCountItem[]
+
+  @@index([clinicId])
+}
+
+model SupplyInventoryCountItem {
+  id           String   @id @default(cuid())
+  countId      String
+  supplyItemId String
+  systemQty    Int      @default(0)
+  actualQty    Int      @default(0)
+  difference   Int      @default(0)
+  notes        String   @default("")
+  createdAt    DateTime @default(now())
+
+  count SupplyInventoryCount @relation(fields: [countId], references: [id])
+
+  @@index([countId])
+}
+
+model SupplyWriteOff {
+  id             String    @id @default(cuid())
+  clinicId       String
+  writeOffNumber String    @default("")
+  writeOffDate   DateTime  @default(now())
+  reason         String    @default("")
+  status         String    @default("Pending")
+  requestedById  String
+  approvedById   String?
+  approvedAt     DateTime?
+  notes          String    @default("")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  clinic      Clinic               @relation(fields: [clinicId], references: [id])
+  requestedBy User                 @relation("WriteOffRequested", fields: [requestedById], references: [id])
+  approvedBy  User?                @relation("WriteOffApproved", fields: [approvedById], references: [id])
+  items       SupplyWriteOffItem[]
+
+  @@index([clinicId])
+}
+
+model SupplyWriteOffItem {
+  id           String   @id @default(cuid())
+  writeOffId   String
+  supplyItemId String
+  quantity     Int      @default(0)
+  unitCost     Float    @default(0)
+  totalCost    Float    @default(0)
+  condition    String   @default("")
+  notes        String   @default("")
+  createdAt    DateTime @default(now())
+
+  writeOff SupplyWriteOff @relation(fields: [writeOffId], references: [id])
+
+  @@index([writeOffId])
+}
+
+model SupplyActivityLog {
+  id         String   @id @default(cuid())
+  clinicId   String
+  userId     String
+  action     String   @default("")
+  entityType String   @default("")
+  entityId   String   @default("")
+  details    String   @default("")
+  createdAt  DateTime @default(now())
+
+  clinic Clinic @relation(fields: [clinicId], references: [id])
+  user   User   @relation("SupplyActivityLogs", fields: [userId], references: [id])
+
+  @@index([clinicId])
+  @@index([userId])
+  @@index([createdAt])
 }

@@ -65,3 +65,75 @@ export const STATION_COLORS: Record<string, string> = {
   WaitPayment: "bg-pink-100 text-pink-800",
   Completed: "bg-green-100 text-green-800",
 };
+
+// ===================== SUPPLY MANAGEMENT =====================
+
+export function generateReceiveNumber(): string {
+  const now = new Date();
+  const by = now.getFullYear() + 543;
+  const rand = Math.floor(1000 + Math.random() * 9000);
+  return `RCV-${by}-${String(rand).padStart(4, "0")}`;
+}
+
+export function generateRequisitionNumber(): string {
+  const now = new Date();
+  const by = now.getFullYear() + 543;
+  const rand = Math.floor(1000 + Math.random() * 9000);
+  return `REQ-${by}-${String(rand).padStart(4, "0")}`;
+}
+
+export function generateWriteOffNumber(): string {
+  const now = new Date();
+  const by = now.getFullYear() + 543;
+  const rand = Math.floor(1000 + Math.random() * 9000);
+  return `WOF-${by}-${String(rand).padStart(4, "0")}`;
+}
+
+export function generateCountNumber(): string {
+  const now = new Date();
+  const by = now.getFullYear() + 543;
+  const rand = Math.floor(1000 + Math.random() * 9000);
+  return `CNT-${by}-${String(rand).padStart(4, "0")}`;
+}
+
+export function formatCurrency(amount: number): string {
+  return amount.toLocaleString("th-TH", { minimumFractionDigits: 2 });
+}
+
+export const SUPPLY_REQ_STATUS_LABELS: Record<string, string> = {
+  Pending: "รออนุมัติ",
+  Approved: "อนุมัติแล้ว",
+  PartialApproved: "อนุมัติบางส่วน",
+  Rejected: "ไม่อนุมัติ",
+  Disbursed: "เบิกจ่ายแล้ว",
+  Cancelled: "ยกเลิก",
+};
+
+export const SUPPLY_REQ_STATUS_COLORS: Record<string, string> = {
+  Pending: "bg-yellow-100 text-yellow-700",
+  Approved: "bg-green-100 text-green-700",
+  PartialApproved: "bg-blue-100 text-blue-700",
+  Rejected: "bg-red-100 text-red-700",
+  Disbursed: "bg-purple-100 text-purple-700",
+  Cancelled: "bg-gray-100 text-gray-500",
+};
+
+export const SUPPLY_MOVEMENT_LABELS: Record<string, string> = {
+  Receive: "รับเข้า",
+  Disburse: "จ่ายออก",
+  AdjustIncrease: "ปรับเพิ่ม",
+  AdjustDecrease: "ปรับลด",
+  WriteOff: "ตัดจำหน่าย",
+  ReturnToStock: "คืนคลัง",
+  CountAdjust: "ปรับตามตรวจนับ",
+};
+
+export const SUPPLY_MOVEMENT_COLORS: Record<string, string> = {
+  Receive: "text-green-600",
+  Disburse: "text-red-600",
+  AdjustIncrease: "text-green-600",
+  AdjustDecrease: "text-red-600",
+  WriteOff: "text-red-600",
+  ReturnToStock: "text-blue-600",
+  CountAdjust: "text-orange-600",
+};
